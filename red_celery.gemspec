@@ -37,7 +37,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "bunny" , "~> 2.14"
-  # spec.add_dependency "concurrent-ruby", "~> 1.1"
+  spec.add_dependency "concurrent-ruby", "~> 1.1"
   spec.add_dependency "msgpack", "~> 1.3"
 
   spec.add_development_dependency "bundler", "~> 1.17"

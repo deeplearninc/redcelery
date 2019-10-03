@@ -22,7 +22,7 @@ module RedCelery
   end
 
   class Client
-    attr_reader :conn, :channel, :default_exchange
+    attr_reader :conn, :channel
 
     def initialize
       @conn = Bunny.new(RedCelery.config.amqp.compact)
@@ -50,7 +50,8 @@ module RedCelery
         kwargs: task_kwargs,
       }
 
-      task_id_to_queue(task_id).subscribe do |delivery_info, properties, payload|
+      result_queue = task_id_to_queue(task_id)
+      result_queue.subscribe do |delivery_info, properties, payload|
         message =
           case (content_type = properties[:content_type])
           when 'application/json' then JSON.parse(payload)
@@ -60,12 +61,14 @@ module RedCelery
           end
 
         block.call(message)
+        # result_queue.delete
       end
 
       exchange.publish(
         body.to_json,
         {
           # content_encoding: 'binary',
+          # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
           content_type: 'application/json',
           correlation_id: task_id,
           reply_to: task_id,
@@ -91,7 +94,7 @@ module RedCelery
     end
 
     def close
-      @exchanges.each { |_, e| e.delete }
+      # @exchanges.each { |_, e| e.delete }
       conn.close
     end
   end
