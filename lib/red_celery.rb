@@ -22,6 +22,8 @@ module RedCelery
   end
 
   class Client
+    DEFAULT_QUEUE = 'celery'.freeze
+
     attr_reader :conn, :channel
 
     def initialize
@@ -34,13 +36,14 @@ module RedCelery
     def get_exchange(queue)
       @exchanges[queue] ||= channel.direct(
         queue,
-        key: queue,
         durable: true
       )
     end
 
-    def send_task(queue, task_name, task_args: [], task_kwargs: {}, task_id: nil, &block)
+    def send_task(task_name, queue: nil, task_args: [], task_kwargs: {}, task_id: nil, &block)
       task_id ||= SecureRandom.uuid
+
+      queue ||= DEFAULT_QUEUE
       exchange = get_exchange(queue)
 
       body = {
@@ -61,7 +64,6 @@ module RedCelery
           end
 
         block.call(message)
-        # result_queue.delete
       end
 
       exchange.publish(
@@ -94,7 +96,6 @@ module RedCelery
     end
 
     def close
-      # @exchanges.each { |_, e| e.delete }
       conn.close
     end
   end
