@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{Ruby Celery client}
   spec.description   = %q{Support v2 protocol see http://docs.celeryproject.org/en/latest/internals/protocol.html}
-  spec.homepage      = "https://github.com/deeplearninc/red_celery"
+  spec.homepage      = "https://github.com/deeplearninc/redcelery"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
@@ -37,10 +37,10 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "bunny" , "~> 2.14"
-  spec.add_dependency "concurrent-ruby", "~> 1.1"
   spec.add_dependency "msgpack", "~> 1.3"
 
   spec.add_development_dependency "bundler", "~> 1.17"
+  spec.add_development_dependency "concurrent-ruby", "~> 1.1"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "ruby-prof"

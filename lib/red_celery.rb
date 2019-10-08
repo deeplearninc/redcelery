@@ -22,8 +22,6 @@ module RedCelery
   end
 
   class Client
-    DEFAULT_QUEUE = 'celery'.freeze
-
     attr_reader :conn, :channel
 
     def initialize
@@ -40,10 +38,11 @@ module RedCelery
       )
     end
 
+    # block - optional callback with result of task
     def send_task(task_name, queue: nil, task_args: [], task_kwargs: {}, task_id: nil, &block)
       task_id ||= SecureRandom.uuid
 
-      queue ||= DEFAULT_QUEUE
+      queue ||= RedCelery.config.default_queue
       exchange = get_exchange(queue)
 
       body = {
@@ -53,17 +52,19 @@ module RedCelery
         kwargs: task_kwargs,
       }
 
-      result_queue = task_id_to_queue(task_id)
-      result_queue.subscribe do |delivery_info, properties, payload|
-        message =
-          case (content_type = properties[:content_type])
-          when 'application/json' then JSON.parse(payload)
-          when 'application/x-yaml' then JSON.parse(payload)
-          when 'application/x-msgpack' then MessagePack.unpack(payload)
-          else raise ArgumentError, "content_type '#{content_type}' isn't supported"
-          end
+      if block
+        result_queue = task_id_to_queue(task_id)
+        result_queue.subscribe do |delivery_info, properties, payload|
+          message =
+            case (content_type = properties[:content_type])
+            when 'application/json' then JSON.parse(payload)
+            when 'application/x-yaml' then JSON.parse(payload)
+            when 'application/x-msgpack' then MessagePack.unpack(payload)
+            else raise ArgumentError, "content_type '#{content_type}' isn't supported"
+            end
 
-        block.call(message)
+          block.call(message)
+        end
       end
 
       exchange.publish(
@@ -75,20 +76,25 @@ module RedCelery
           correlation_id: task_id,
           reply_to: task_id,
           routing_key: queue,
-
-          # application_headers: {
-          #   lang: 'py',
-          #   task: task_name,
-          #   id: task_id,
-          #   # 'root_id': uuid root_id,
-          #   # 'parent_id': uuid parent_id,
-          #   # 'group': uuid group_id,
-          #   retries: retries,
-          #   eta: eta,
-          #   expires: expires
-          # }
         }
       )
+
+      task_id
+    end
+
+    # Pull task result
+    def get_task_result(task_id)
+      queue = task_id_to_queue(task_id)
+
+      if queue.message_count > 0
+        delivery_info, properties, payload = queue.pop
+
+        {
+          delivery_info: delivery_info,
+          properties: properties,
+          payload: payload
+        }
+      end
     end
 
     def task_id_to_queue(task_id)

@@ -19,12 +19,19 @@ client = RedCelery::Client.new
 
 # client.send_task('auger_ml.tasks_queue.tasks.list_project_files_task', task_args: args) do |payload|
 # client.send_task('auger_ml.tasks_queue.tasks.get_experiment_configs_task', task_args: args) do |payload|
-client.send_task('auger_ml.tasks_queue.evaluate_api.stop_evaluate_task', task_args: args) do |payload|
-  puts "-> Got result!!!"
-  p payload
-  exit
+# client.send_task('auger_ml.tasks_queue.tasks.evaluate_start_task', task_args: args) do |payload|
+# task_id = client.send_task('auger_ml.tasks_queue.evaluate_api.get_leaderboard_task', task_args: args)
+# task_id = client.send_task('auger_ml.tasks_queue.evaluate_api.stop_evaluate_task', task_args: args)
+task_id = client.send_task('auger_ml.tasks_queue.tasks.datasource_get_statistics_task', task_args: args) # FAILURE
+
+result = nil
+
+while result == nil do
+  result = client.get_task_result(task_id)
+  sleep 0.5
 end
 
-sleep 60
+puts "-> Got result!!!"
+p result
 
 client.close
