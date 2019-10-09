@@ -39,7 +39,7 @@ THREADS_COUNT.times.map do |num|
     task_ids = Set.new
 
     TASKS_PER_THREAD.times do |i|
-      task_ids << client.send_task('test.add_task', queue: 'my_queue', task_args: [i, 0])
+      task_ids << client.send_task('test.add_task', queue: 'my_queue', args: [i, 0])
       sent.swap { |i| i + 1 }
 
       consume_task_results(client, task_ids, total)

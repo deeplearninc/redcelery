@@ -24,8 +24,8 @@ module RedCelery
   class Client
     attr_reader :conn, :channel
 
-    def initialize
-      @conn = Bunny.new(RedCelery.config.amqp.compact)
+    def initialize(broker_url = nil)
+      @conn = Bunny.new(broker_url || RedCelery.config.amqp)
       conn.start
       @channel = conn.create_channel
       @exchanges = {}
@@ -39,31 +39,23 @@ module RedCelery
     end
 
     # block - optional callback with result of task
-    def send_task(task_name, queue: nil, task_args: [], task_kwargs: {}, task_id: nil, &block)
+    def send_task(task_name, queue: nil, args: [], kwargs: {}, task_id: nil, &block)
       task_id ||= SecureRandom.uuid
-
       queue ||= RedCelery.config.default_queue
+
       exchange = get_exchange(queue)
 
       body = {
         task: task_name,
         id: task_id,
-        args: task_args,
-        kwargs: task_kwargs,
+        args: args,
+        kwargs: kwargs,
       }
 
       if block
         result_queue = task_id_to_queue(task_id)
         result_queue.subscribe do |delivery_info, properties, payload|
-          message =
-            case (content_type = properties[:content_type])
-            when 'application/json' then JSON.parse(payload)
-            when 'application/x-yaml' then JSON.parse(payload)
-            when 'application/x-msgpack' then MessagePack.unpack(payload)
-            else raise ArgumentError, "content_type '#{content_type}' isn't supported"
-            end
-
-          block.call(message)
+          block.call(decode_payload(properties, payload))
         end
       end
 
@@ -92,13 +84,61 @@ module RedCelery
         {
           delivery_info: delivery_info,
           properties: properties,
-          payload: payload
+          payload: decode_payload(properties, payload)
         }
       end
     end
 
+    def revoke_task(task_id, terminate: true, signal: 'TERM')
+      # queue =
+      exchange = channel.fanout('celery.pidbox')
+
+      message = {
+        method: 'revoke',
+        arguments: {
+          task_id: task_id,
+          terminate: terminate,
+          signal: signal
+        },
+        # destination: nil,
+      }
+
+      # {
+      #   "method": "revoke",
+      #   "arguments": {
+      #     "task_id": "0748dd5c-02a6-4441-852f-5b000b954e6a",
+      #     "terminate": true,
+      #     "signal": null
+      #   },
+      #   "destination": null,
+      #   "pattern": null,
+      #   "matcher": null
+      # }
+
+      exchange.publish(
+        message.to_json,
+        {
+          # content_encoding: 'binary',
+          # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
+          content_type: 'application/json',
+          correlation_id: task_id,
+          reply_to: task_id,
+          # routing_key: queue,
+        }
+      )
+    end
+
     def task_id_to_queue(task_id)
       channel.queue(task_id, auto_delete: true)
+    end
+
+    def decode_payload(properties, payload)
+      case (content_type = properties[:content_type])
+      when 'application/json' then JSON.parse(payload)
+      when 'application/x-yaml' then JSON.parse(payload)
+      when 'application/x-msgpack' then MessagePack.unpack(payload)
+      else raise ArgumentError, "content_type '#{content_type}' isn't supported"
+      end
     end
 
     def close
