@@ -1,5 +1,6 @@
 require 'bundler/setup'
 require 'red_celery'
+require 'concurrent'
 
 Dir['spec/support/**/*.rb'].each { |f| require f.sub('spec/', '') }
 

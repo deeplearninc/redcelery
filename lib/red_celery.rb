@@ -24,11 +24,15 @@ module RedCelery
   class Client
     attr_reader :conn, :channel
 
-    def initialize(broker_url = nil)
+    def initialize(broker_url: nil, &task_done_callback)
       @conn = Bunny.new(broker_url || RedCelery.config.amqp)
       conn.start
       @channel = conn.create_channel
       @exchanges = {}
+      @task_done_callback = task_done_callback
+      @result_queue = "celery.results.#{SecureRandom.uuid}"
+
+      subscribe(@result_queue, task_done_callback)
     end
 
     def get_exchange(queue)
@@ -52,11 +56,8 @@ module RedCelery
         kwargs: kwargs,
       }
 
-      if block
-        result_queue = task_id_to_queue(task_id)
-        result_queue.subscribe do |delivery_info, properties, payload|
-          block.call(decode_payload(properties, payload))
-        end
+      if block && !@task_done_callback
+        subscribe(task_id, block)
       end
 
       exchange.publish(
@@ -66,7 +67,7 @@ module RedCelery
           # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
           content_type: 'application/json',
           correlation_id: task_id,
-          reply_to: task_id,
+          reply_to: @task_done_callback ? @result_queue : task_id,
           routing_key: queue,
         }
       )
@@ -74,9 +75,19 @@ module RedCelery
       task_id
     end
 
+    def subscribe(task_id, block)
+      get_result_queue(task_id).subscribe do |delivery_info, properties, payload|
+        block.call(
+          delivery_info: delivery_info,
+          properties: properties,
+          payload: decode_payload(properties, payload)
+        )
+      end
+    end
+
     # Pull task result
     def get_task_result(task_id)
-      queue = task_id_to_queue(task_id)
+      queue = get_result_queue(task_id)
 
       if queue.message_count > 0
         delivery_info, properties, payload = queue.pop
@@ -90,7 +101,6 @@ module RedCelery
     end
 
     def revoke_task(task_id, terminate: true, signal: 'TERM')
-      # queue =
       exchange = channel.fanout('celery.pidbox')
 
       message = {
@@ -100,20 +110,7 @@ module RedCelery
           terminate: terminate,
           signal: signal
         },
-        # destination: nil,
       }
-
-      # {
-      #   "method": "revoke",
-      #   "arguments": {
-      #     "task_id": "0748dd5c-02a6-4441-852f-5b000b954e6a",
-      #     "terminate": true,
-      #     "signal": null
-      #   },
-      #   "destination": null,
-      #   "pattern": null,
-      #   "matcher": null
-      # }
 
       exchange.publish(
         message.to_json,
@@ -123,13 +120,12 @@ module RedCelery
           content_type: 'application/json',
           correlation_id: task_id,
           reply_to: task_id,
-          # routing_key: queue,
         }
       )
     end
 
-    def task_id_to_queue(task_id)
-      channel.queue(task_id, auto_delete: true)
+    def get_result_queue(queue_name = nil)
+      channel.queue(queue_name, auto_delete: true)
     end
 
     def decode_payload(properties, payload)

@@ -3,18 +3,25 @@ from time import sleep
 import os
 
 broker = 'amqp://guest:guest@localhost:5672/'
-# broker = 'amqp://nirkdhgh:HBEkVCv1fz729tFhnHy8WDSCjoS_13pp@eagle.rmq.cloudamqp.com:5672/nirkdhgh'
-# backend = local_broker
-# backend = 'rpc://'
-backend = broker.replace('amqp', 'rpc', 1)
+backend ='rpc://'
 print(backend)
 
 app = Celery('tasks', broker=broker, backend=backend)
 
 @app.task(queue='my_queue')
+def log_task(data):
+  print('Logged data: ' + str(data))
+
+@app.task(queue='my_queue')
+def sub_add_task(x, y):
+  return x + 1, y + 1
+
+@app.task(queue='my_queue')
 def add_task(x, y):
-  print(str(x) + ' + ' + str(y) + ' = ' + str(x + y))
-  return x + y
+  # x, y = sub_add_task.apply_async(args=[x, y], priority=10).get(disable_sync_subtasks=False)
+  res = x + y
+  log_task.delay(str(x) + ' + ' + str(y) + ' = ' + str(res))
+  return res
 
 @app.task(queue='my_queue')
 def delay_task(period_s):
