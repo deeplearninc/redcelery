@@ -6,8 +6,9 @@
 /pkg/
 /spec/reports/
 /tmp/
+__pycache__
 
 # rspec failure tracking
 .rspec_status
 .venv
-__pycache__
+*.gem
