@@ -1,0 +1,80 @@
+version: 2.1
+
+jobs:
+  build_celery:
+    docker:
+      - image: circleci/ruby:2.6.5
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build redcelery-test-worker Docker image
+          command: |
+            cd spec/celery && docker build -f Dockerfile -t aemelyanov86/redcelery-test-worker .
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            docker push aemelyanov86/redcelery-test-worker
+
+  test:
+    docker:
+      - image: circleci/ruby:2.6.5
+      - image: rabbitmq:3.8
+      - image: aemelyanov86/redcelery-test-worker
+    steps:
+      - checkout
+
+      # Restore bundle cache
+      - restore_cache:
+          keys:
+            - red_celery-{{ arch }}-{{ checksum "Gemfile.lock" }}
+
+      # Bundle install dependencies
+      - run: bundle install --path vendor/bundle
+
+      # Store bundle cache
+      - save_cache:
+          key: red_celery-{{ arch }}-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
+
+      # Wait until RabbitMQ is ready
+      - run: |
+          bundle exec rspec spec/wait_rabbit_spec.rb
+
+      # Run specs
+      - run: |
+          bundle exec rspec --profile 10 --format progress
+
+  build_and_release:
+    docker:
+      - image: circleci/ruby:2.6.5
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - red_celery-{{ arch }}-{{ checksum "Gemfile.lock" }}
+      - run:
+          command: |
+            gem build red_celery.gemspec
+            touch ~/.gem/credentials
+            echo "---" >> ~/.gem/credentials
+            echo ":rubygems_api_key: ${RUBY_GEMS_KEY}" >> ~/.gem/credentials
+            chmod 0600 ~/.gem/credentials
+            gem push red_celery-*.gem
+
+workflows:
+  version: 2
+  test-build:
+    jobs:
+      - build_celery
+      - test:
+          requires:
+            - build_celery
+      - build_and_release:
+          requires:
+            - test
+          # Only for v tags
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
