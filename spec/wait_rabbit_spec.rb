@@ -32,6 +32,6 @@ RSpec.describe 'wait untill RabbitMQ and Celery start' do
       sleep(1)
     end
 
-    expect(result[:payload][:result]).to eq 77
+    expect(result[:result]).to eq 77
   end
 end

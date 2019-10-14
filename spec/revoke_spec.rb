@@ -23,12 +23,7 @@ RSpec.describe 'revoking' do
   it do
     expect(subject).to be_a Hash
 
-    expect(subject).to include(
-      delivery_info: be_kind_of(Bunny::GetResponse),
-      properties: be_kind_of(Bunny::MessageProperties),
-      payload: be_kind_of(Hash),
-    )
-
-    expect(subject[:payload][:status]).to eq 'REVOKED'
+    expect(subject).to be_kind_of(Hash)
+    expect(subject[:status]).to eq 'REVOKED'
   end
 end

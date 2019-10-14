@@ -76,12 +76,8 @@ module RedCelery
     end
 
     def subscribe(task_id, block)
-      get_result_queue(task_id).subscribe do |delivery_info, properties, payload|
-        block.call(
-          delivery_info: delivery_info,
-          properties: properties,
-          payload: decode_payload(properties, payload)
-        )
+      get_result_queue(task_id).subscribe do |_delivery_info, properties, payload|
+        block.call(decode_payload(properties, payload))
       end
     end
 
@@ -90,13 +86,8 @@ module RedCelery
       queue = get_result_queue(task_id)
 
       if queue.message_count > 0
-        delivery_info, properties, payload = queue.pop
-
-        {
-          delivery_info: delivery_info,
-          properties: properties,
-          payload: decode_payload(properties, payload)
-        }
+        _delivery_info, properties, payload = queue.pop
+        decode_payload(properties, payload)
       end
     end
 

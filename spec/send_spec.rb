@@ -25,14 +25,9 @@ RSpec.describe 'send ' do
         it do
           expect(subject).to be_a Hash
 
-          expect(subject).to include(
-            delivery_info: be_kind_of(Bunny::GetResponse),
-            properties: be_kind_of(Bunny::MessageProperties),
-            payload: be_kind_of(Hash),
-          )
-
-          expect(subject[:payload][:status]).to eq 'SUCCESS'
-          expect(subject[:payload][:result]).to eq 33
+          expect(subject).to be_kind_of(Hash)
+          expect(subject[:status]).to eq 'SUCCESS'
+          expect(subject[:result]).to eq 33
         end
       end
     end
@@ -65,14 +60,9 @@ RSpec.describe 'send ' do
         it do
           expect(subject).to be_a Hash
 
-          expect(subject).to include(
-            delivery_info: be_kind_of(Bunny::DeliveryInfo),
-            properties: be_kind_of(Bunny::MessageProperties),
-            payload: be_kind_of(Hash),
-          )
-
-          expect(subject[:payload][:status]).to eq 'SUCCESS'
-          expect(subject[:payload][:result]).to eq 33
+          expect(subject).to be_kind_of(Hash)
+          expect(subject[:status]).to eq 'SUCCESS'
+          expect(subject[:result]).to eq 33
         end
       end
     end

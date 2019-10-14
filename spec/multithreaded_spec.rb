@@ -25,7 +25,7 @@ RSpec.describe 'multithreaded tasks spawning and results consuming' do
         started_at = Time.now
 
         client = RedCelery::Client.new do |result|
-          task_ids.delete(result[:payload][:task_id])
+          task_ids.delete(result[:task_id])
           total.swap { |i| i + 1 }
         end
 
