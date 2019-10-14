@@ -37,3 +37,7 @@ def test_revoke(period_s):
   res.revoke(terminate=True)
   sleep(120)
   return res
+
+@app.task(queue='my_queue')
+def test_fail(value):
+  return value / 0
