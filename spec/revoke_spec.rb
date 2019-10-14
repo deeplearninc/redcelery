@@ -29,6 +29,6 @@ RSpec.describe 'revoking' do
       payload: be_kind_of(Hash),
     )
 
-    expect(subject[:payload]['status']).to eq 'REVOKED'
+    expect(subject[:payload][:status]).to eq 'REVOKED'
   end
 end

@@ -3,7 +3,7 @@ from time import sleep
 import os
 
 broker = 'amqp://guest:guest@localhost:5672/'
-backend ='rpc://'
+backend = 'rpc://'
 print(backend)
 
 app = Celery('tasks', broker=broker, backend=backend)

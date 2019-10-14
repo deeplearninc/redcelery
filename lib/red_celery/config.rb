@@ -14,6 +14,8 @@ module RedCelery
         pass: ENV['REDCELERY_PASS'],
       }.compact
 
+      @amqp_borker_url = ENV['REDCELERY_BROKER_URL']
+
       @default_queue = 'celery'
     end
 

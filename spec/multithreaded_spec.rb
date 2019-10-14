@@ -25,7 +25,7 @@ RSpec.describe 'multithreaded tasks spawning and results consuming' do
         started_at = Time.now
 
         client = RedCelery::Client.new do |result|
-          task_ids.delete(result[:payload]['task_id'])
+          task_ids.delete(result[:payload][:task_id])
           total.swap { |i| i + 1 }
         end
 
@@ -34,8 +34,6 @@ RSpec.describe 'multithreaded tasks spawning and results consuming' do
           sent.swap { |i| i + 1 }
         end
 
-        puts 'I"m here'
-        puts timeout
         while task_ids.any? && Time.now - started_at < timeout do
           # Do not stop thread until all task results are received
           sleep 1

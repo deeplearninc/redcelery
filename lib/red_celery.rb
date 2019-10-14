@@ -130,8 +130,8 @@ module RedCelery
 
     def decode_payload(properties, payload)
       case (content_type = properties[:content_type])
-      when 'application/json' then JSON.parse(payload)
-      when 'application/x-yaml' then JSON.parse(payload)
+      when 'application/json' then JSON.parse(payload, symbolize_names: true)
+      when 'application/x-yaml' then JSON.parse(payload, symbolize_names: true)
       when 'application/x-msgpack' then MessagePack.unpack(payload)
       else raise ArgumentError, "content_type '#{content_type}' isn't supported"
       end

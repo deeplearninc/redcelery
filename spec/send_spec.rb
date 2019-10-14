@@ -31,8 +31,8 @@ RSpec.describe 'send ' do
             payload: be_kind_of(Hash),
           )
 
-          expect(subject[:payload]['status']).to eq 'SUCCESS'
-          expect(subject[:payload]['result']).to eq 33
+          expect(subject[:payload][:status]).to eq 'SUCCESS'
+          expect(subject[:payload][:result]).to eq 33
         end
       end
     end
@@ -71,8 +71,8 @@ RSpec.describe 'send ' do
             payload: be_kind_of(Hash),
           )
 
-          expect(subject[:payload]['status']).to eq 'SUCCESS'
-          expect(subject[:payload]['result']).to eq 33
+          expect(subject[:payload][:status]).to eq 'SUCCESS'
+          expect(subject[:payload][:result]).to eq 33
         end
       end
     end
