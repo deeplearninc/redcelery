@@ -22,6 +22,11 @@ module RedCelery
   end
 
   class Client
+    VHOST_NOT_FOUND_MATCHER = /vhost .* not found/i
+
+    Error = Class.new(StandardError)
+    VhostNotFoundError = Class.new(Error)
+
     attr_reader :conn, :channel
 
     def initialize(broker_url: nil, &task_done_callback)
@@ -33,6 +38,12 @@ module RedCelery
       @result_queue = "celery.results.#{SecureRandom.uuid}"
 
       subscribe(@result_queue, task_done_callback)
+    rescue Bunny::NotAllowedError => e
+      if e.message =~ VHOST_NOT_FOUND_MATCHER
+        raise VhostNotFoundError
+      else
+        raise
+      end
     end
 
     def get_exchange(queue)
