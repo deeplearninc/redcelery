@@ -1,5 +1,5 @@
-RSpec.describe 'send ' do
-  let(:timeout_sec) { 10 }
+RSpec.describe 'send' do
+  let(:timeout_sec) { 5 }
 
   describe 'with separate result queues' do
     let(:client) { RedCelery::Client.new }
@@ -18,7 +18,7 @@ RSpec.describe 'send ' do
       result
     end
 
-    [nil, 'my_queue'].each do |queue|
+    ['my_queue', nil].each do |queue|
       context "queue = #{queue}" do
         let(:queue) { queue }
 
@@ -53,7 +53,7 @@ RSpec.describe 'send ' do
       result
     end
 
-    [nil, 'my_queue'].each do |queue|
+    ['my_queue', nil].each do |queue|
       context "queue = #{queue}" do
         let(:queue) { queue }
 

@@ -27,17 +27,20 @@ module RedCelery
     Error = Class.new(StandardError)
     VhostNotFoundError = Class.new(Error)
 
-    attr_reader :conn, :channel
+    attr_reader :connection
 
     def initialize(broker_url: nil, &task_done_callback)
-      @conn = Bunny.new(broker_url || RedCelery.config.amqp)
-      conn.start
-      @channel = conn.create_channel
-      @exchanges = {}
-      @task_done_callback = task_done_callback
-      @result_queue = "celery.results.#{SecureRandom.uuid}"
+      @connection = Bunny.new(broker_url || RedCelery.config.amqp)
+      @connection.start
+      @channels = Concurrent::Hash.new
+      @exchanges = Concurrent::Hash.new { |h, k| h[k] = Concurrent::Hash.new }
+      @lock = Mutex.new
 
-      subscribe(@result_queue, task_done_callback)
+      if task_done_callback
+        @task_done_callback = task_done_callback
+        @result_queue = "celery.results.#{SecureRandom.uuid}"
+        subscribe(@result_queue, task_done_callback)
+      end
     rescue Bunny::NotAllowedError => e
       if e.message =~ VHOST_NOT_FOUND_MATCHER
         raise VhostNotFoundError
@@ -46,11 +49,13 @@ module RedCelery
       end
     end
 
+    def get_channel
+      @channels[Thread.current] ||= connection.create_channel
+    end
+
     def get_exchange(queue)
-      @exchanges[queue] ||= channel.direct(
-        queue,
-        durable: true
-      )
+      channel = get_channel
+      @exchanges[channel][queue] ||= channel.direct(queue, durable: true)
     end
 
     # block - optional callback with result of task
@@ -71,24 +76,28 @@ module RedCelery
         subscribe(task_id, block)
       end
 
-      exchange.publish(
-        body.to_json,
-        {
-          # content_encoding: 'binary',
-          # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
-          content_type: 'application/json',
-          correlation_id: task_id,
-          reply_to: @task_done_callback ? @result_queue : task_id,
-          routing_key: queue,
-        }
-      )
+      @lock.synchronize do
+        exchange.publish(
+          body.to_json,
+          {
+            # content_encoding: 'binary',
+            # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
+            content_type: 'application/json',
+            correlation_id: task_id,
+            reply_to: @task_done_callback ? @result_queue : task_id,
+            routing_key: queue,
+          }
+        )
+      end
 
       task_id
     end
 
     def subscribe(task_id, block)
-      get_result_queue(task_id).subscribe do |_delivery_info, properties, payload|
-        block.call(decode_payload(properties, payload))
+      @lock.synchronize do
+        get_result_queue(task_id).subscribe do |_delivery_info, properties, payload|
+          block.call(decode_payload(properties, payload))
+        end
       end
     end
 
@@ -103,7 +112,7 @@ module RedCelery
     end
 
     def revoke_task(task_id, terminate: true, signal: 'TERM')
-      exchange = channel.fanout('celery.pidbox')
+      exchange = get_channel.fanout('celery.pidbox')
 
       message = {
         method: 'revoke',
@@ -114,20 +123,22 @@ module RedCelery
         },
       }
 
-      exchange.publish(
-        message.to_json,
-        {
-          # content_encoding: 'binary',
-          # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
-          content_type: 'application/json',
-          correlation_id: task_id,
-          reply_to: task_id,
-        }
-      )
+      @lock.synchronize do
+        exchange.publish(
+          message.to_json,
+          {
+            # content_encoding: 'binary',
+            # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
+            content_type: 'application/json',
+            correlation_id: task_id,
+            reply_to: task_id,
+          }
+        )
+      end
     end
 
     def get_result_queue(queue_name = nil)
-      channel.queue(queue_name, auto_delete: true)
+      get_channel.queue(queue_name, auto_delete: true)
     end
 
     def decode_payload(properties, payload)
@@ -140,7 +151,9 @@ module RedCelery
     end
 
     def close
-      conn.close
+      @channels.clear
+      @exchanges.clear
+      connection.close
     end
   end
 end
