@@ -19,7 +19,7 @@ RSpec.describe 'multithreaded tasks spawning and results consuming' do
       end
     end
 
-    client = RedCelery::Client.new do |result|
+    client = RedCelery::Client.new(rpc_mode: false) do |result|
       task_ids.delete(result[:task_id])
       total.swap { |i| i + 1 }
     end

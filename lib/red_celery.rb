@@ -29,15 +29,18 @@ module RedCelery
 
     attr_reader :connection
 
-    def initialize(broker_url: nil, &task_done_callback)
+    def initialize(broker_url: nil, rpc_mode: nil, &task_done_callback)
       @connection = Bunny.new(broker_url || RedCelery.config.amqp)
       @connection.start
+      # http://rubybunny.info/articles/concurrency.html#sharing_channels_between_threads
       @channels = Concurrent::Hash.new
       @exchanges = Concurrent::Hash.new { |h, k| h[k] = Concurrent::Hash.new }
       @lock = Mutex.new
 
-      if task_done_callback
-        @task_done_callback = task_done_callback
+      @rpc_mode = rpc_mode != nil ? rpc_mode : RedCelery.config.rpc_mode
+      @task_done_callback = task_done_callback
+
+      if @task_done_callback && @rpc_mode
         @result_queue = "celery.results.#{SecureRandom.uuid}"
         subscribe(@result_queue, task_done_callback)
       end
@@ -76,6 +79,10 @@ module RedCelery
         subscribe(task_id, block)
       end
 
+      if @rpc_mode != true && @task_done_callback
+        subscribe(task_id, @task_done_callback)
+      end
+
       @lock.synchronize do
         exchange.publish(
           body.to_json,
@@ -84,11 +91,12 @@ module RedCelery
             # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
             content_type: 'application/json',
             correlation_id: task_id,
-            reply_to: @task_done_callback ? @result_queue : task_id,
+            reply_to: (@task_done_callback && @rpc_mode ? @result_queue : task_id),
             routing_key: queue,
           }
         )
       end
+
 
       task_id
     end
@@ -138,7 +146,11 @@ module RedCelery
     end
 
     def get_result_queue(queue_name = nil)
-      get_channel.queue(queue_name, auto_delete: true)
+      if !@rpc_mode
+        queue_name = queue_name.gsub('-', '')
+      end
+
+      get_channel.queue(queue_name, auto_delete: true, durable: true, arguments: { 'x-expires' => 3600000 })
     end
 
     def decode_payload(properties, payload)

@@ -1,12 +1,20 @@
-from celery import Celery
+from celery import Celery, group, chain
 from kombu import Exchange, Queue
 from time import sleep
 import os
 
 broker = 'amqp://guest:guest@localhost:5672/'
-backend = 'rpc://'
+backend = broker
+
+# TODO: make integration specs for both amqp and rpc backends
+# backend = 'rpc://'
 
 app = Celery('tasks', broker=broker, backend=backend)
+
+app.conf.update(
+  result_expires=3600,
+  result_persistent=True
+)
 
 @app.task(queue='my_queue')
 def log_task(data):
@@ -18,7 +26,22 @@ def sub_add_task(x, y):
 
 @app.task(queue='my_queue')
 def add_task(x, y):
-  # x, y = sub_add_task.apply_async(args=[x, y], priority=10).get(disable_sync_subtasks=False)
+  # x, y = sub_add_task.apply_async(args=[x, y], priority=10).get() # don't work
+  # x, y = sub_add_task.apply_async(args=[x, y], priority=10).get(disable_sync_subtasks=False) # 50/50 ???
+
+  # chain = sub_add_task.s(x, y) # Works!
+  # x, y = chain()
+
+  # result = sub_add_task.apply_async(args=(x, y))
+  # i = 0
+  # while result.ready() == False and i < 10:
+  #   i += 1
+  #   sleep(1)
+
+  # print('ready = ' + str(result.ready()))
+
+  # x, y = result.get(disable_sync_subtasks=False)
+
   res = x + y
   log_task.delay(str(x) + ' + ' + str(y) + ' = ' + str(res))
   return res

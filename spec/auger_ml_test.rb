@@ -15,7 +15,7 @@ args = [
   }
 ]
 
-client = RedCelery::Client.new
+client = RedCelery::Client.new(rpc_mode: false)
 
 p task_id = client.send_task('auger_ml.tasks_queue.tasks.list_project_files_task', args: args)
 # client.send_task('auger_ml.tasks_queue.tasks.get_experiment_configs_task', args: args) do |payload|

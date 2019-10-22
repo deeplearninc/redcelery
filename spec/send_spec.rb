@@ -2,7 +2,7 @@ RSpec.describe 'send' do
   let(:timeout_sec) { 5 }
 
   describe 'with separate result queues' do
-    let(:client) { RedCelery::Client.new }
+    let(:client) { RedCelery::Client.new(rpc_mode: false) }
 
     subject do
       started_at = Time.now
@@ -37,7 +37,7 @@ RSpec.describe 'send' do
     subject do
       result = nil
 
-      client = RedCelery::Client.new do |payload|
+      client = RedCelery::Client.new(rpc_mode: false) do |payload|
         result = payload
       end
 

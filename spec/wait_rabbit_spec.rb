@@ -8,7 +8,7 @@ RSpec.describe 'wait untill RabbitMQ and Celery start' do
 
     while client == nil && Time.now - started_at < timeout_sec do
       begin
-        client = RedCelery::Client.new
+        client = RedCelery::Client.new(rpc_mode: false)
         expect(client).to be_a RedCelery::Client
       rescue StandardError => e
         sleep(1)

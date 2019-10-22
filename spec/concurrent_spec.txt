@@ -1,0 +1,54 @@
+# Investigate how many threads uses subscribe
+RSpec.describe 'check concurrency issues' do
+  it do
+    p connection = Bunny.new(RedCelery.config.amqp)
+    connection.start
+    queue = 'my_queue'
+    timeout_sec = 5
+
+    10.times.map do |i|
+      Thread.new do
+        channel = connection.create_channel
+        p exchange = channel.direct(queue, durable: true)
+        p exchange = channel.direct(queue, durable: true)
+
+        task_id = SecureRandom.uuid
+
+        body = {
+          task: 'tasks.add_task',
+          id: task_id,
+          args: [11, 22],
+          kwargs: {},
+        }
+
+        exchange.publish(
+          body.to_json,
+          {
+            # content_encoding: 'binary',
+            # Use JSON because by default Celery threats msgpack as a dangerous and ignore such messages
+            content_type: 'application/json',
+            correlation_id: task_id,
+            reply_to: task_id,
+            routing_key: queue,
+          }
+        )
+
+        result = nil
+        started_at = Time.now
+        result_queue = channel.queue(task_id, auto_delete: true)
+
+        while result == nil && Time.now - started_at < timeout_sec do
+          if result_queue.message_count > 0
+            _delivery_info, properties, payload = result_queue.pop
+            result = JSON.parse(payload, symbolize_names: true)
+          end
+
+          sleep 0.5
+        end
+
+        channel.close
+        p result
+      end
+    end.map(&:join)
+  end
+end
