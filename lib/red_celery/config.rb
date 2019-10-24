@@ -3,7 +3,7 @@ module RedCelery
     # See http://rubybunny.info/articles/connecting.html
     # includes :host, :port, :ssl, :vhost, :user, :pass, :heartbeat, :frame_max, :auth_mechanism
     attr_accessor :amqp
-    attr_accessor :default_queue, :rpc_mode, :amqp_borker_url
+    attr_accessor :default_queue, :rpc_mode, :amqp_borker_url, :response_queue_expiration
 
     def initialize
       @amqp = {
@@ -17,6 +17,7 @@ module RedCelery
 
       @default_queue = 'celery'
       @rpc_mode = true
+      @response_queue_expiration = 3600000
     end
 
     def amqp

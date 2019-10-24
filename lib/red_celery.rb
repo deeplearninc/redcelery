@@ -150,7 +150,12 @@ module RedCelery
         queue_name = queue_name.gsub('-', '')
       end
 
-      get_channel.queue(queue_name, auto_delete: true, durable: true, arguments: { 'x-expires' => 3600000 })
+      get_channel.queue(
+        queue_name,
+        auto_delete: true,
+        durable: true,
+        arguments: { 'x-expires' => RedCelery.config.response_queue_expiration }
+      )
     end
 
     def decode_payload(properties, payload)

@@ -4,7 +4,7 @@ from time import sleep
 import os
 
 broker = 'amqp://guest:guest@localhost:5672/'
-backend = broker
+backend = 'amqp://'
 
 # TODO: make integration specs for both amqp and rpc backends
 # backend = 'rpc://'
