@@ -154,7 +154,7 @@ module RedCelery
         queue_name,
         auto_delete: true,
         durable: true,
-        arguments: { 'x-expires' => RedCelery.config.response_queue_expiration }
+        arguments: { 'x-expires' => RedCelery.config.response_queue_expiration_ms }
       )
     end
 
