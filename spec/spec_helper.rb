@@ -17,3 +17,13 @@ RSpec.configure do |config|
 
   config.threadsafe = true
 end
+
+def rpc_mode
+  ENV.fetch('RPC_MODE', 'true') == 'true'
+end
+
+def build_red_celery_client(options = {}, &block)
+  RedCelery::Client.new(rpc_mode: rpc_mode, **options, &block)
+end
+
+puts "Use #{rpc_mode ? "RPC" : "AMQP"} mode"

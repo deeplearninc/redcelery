@@ -4,10 +4,13 @@ from time import sleep
 import os
 
 broker = 'amqp://guest:guest@localhost:5672/'
-backend = 'amqp://'
 
-# TODO: make integration specs for both amqp and rpc backends
-# backend = 'rpc://'
+if os.getenv('RPC_MODE', 'true') == 'true':
+  backend = 'rpc://'
+else:
+  backend = 'amqp://'
+
+print(">> Using " + backend + " backend")
 
 app = Celery('tasks', broker=broker, backend=backend)
 
