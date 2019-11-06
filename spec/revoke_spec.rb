@@ -4,7 +4,7 @@ RSpec.describe 'revoking' do
   let(:timeout_sec) { 10 }
 
   def execute_test
-    client = RedCelery::Client.new(rpc_mode: false)
+    client = build_red_celery_client
     started_at = Time.now
 
     task_id = client.send_task('tasks.delay_task', queue: 'my_queue', args: [10])

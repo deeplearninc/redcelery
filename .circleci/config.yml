@@ -33,10 +33,21 @@ jobs:
             - ~/caches/worker.tar
 
   test:
+    parameters:
+      rpc_mode:
+        default: "true"
+        type: string
+
     docker:
       - image: circleci/ruby:2.6.5
       - image: rabbitmq:3.8
       - image: aemelyanov86/redcelery-test-worker
+        environment:
+          RPC_MODE: << parameters.rpc_mode >>
+
+    environment:
+      RPC_MODE: << parameters.rpc_mode >>
+
     steps:
       - checkout
 
@@ -90,6 +101,16 @@ workflows:
             tags:
               only: /.*/
       - test:
+          name: test-rpc-enabled
+          rpc_mode: 'true'
+          requires:
+            - build_celery
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          name: test-rpc-disabled
+          rpc_mode: 'false'
           requires:
             - build_celery
           filters:
@@ -97,7 +118,8 @@ workflows:
               only: /.*/
       # - build_and_release:
       #     requires:
-      #       - test
+      #       - test-rpc-enabled
+      #       - test-rpc-disabled
       #     # Only for v tags
       #     filters:
       #       tags:
