@@ -8,6 +8,8 @@ RSpec.describe 'send' do
       started_at = Time.now
       task_id = client.send_task('tasks.add_task', queue: queue, args: [11, 22])
 
+      expect(client.result_queue).to eq nil
+
       result = nil
       while result == nil && Time.now - started_at < timeout_sec do
         result = client.get_task_result(task_id)
@@ -40,6 +42,8 @@ RSpec.describe 'send' do
       client = build_red_celery_client do |payload|
         result = payload
       end
+
+      expect(client.result_queue).to be_a String
 
       started_at = Time.now
       task_id = client.send_task('tasks.add_task', queue: queue, args: [11, 22])

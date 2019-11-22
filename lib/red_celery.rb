@@ -27,7 +27,7 @@ module RedCelery
     Error = Class.new(StandardError)
     VhostNotFoundError = Class.new(Error)
 
-    attr_reader :connection
+    attr_reader :connection, :result_queue
 
     def initialize(broker_url: nil, rpc_mode: nil, &task_done_callback)
       @connection = Bunny.new(broker_url || RedCelery.config.amqp)
