@@ -52,6 +52,12 @@ module RedCelery
       end
     end
 
+    def purge_queue(queue)
+      get_channel.queue_purge(queue || RedCelery.config.default_queue)
+    rescue Bunny::NotFound
+      false
+    end
+
     def get_channel
       @channels[Thread.current] ||= connection.create_channel
     end
