@@ -59,7 +59,11 @@ module RedCelery
     end
 
     def get_channel
-      @channels[Thread.current] ||= connection.create_channel
+      if !@channels[Thread.current]&.open?
+        @channels[Thread.current] = connection.create_channel
+      end
+
+      @channels[Thread.current]
     end
 
     def get_exchange(queue)
