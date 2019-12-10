@@ -13,3 +13,4 @@ __pycache__
 .venv
 *.gem
 *.log
+spec/auger_ml_test.rb

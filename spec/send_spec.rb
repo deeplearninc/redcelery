@@ -44,7 +44,12 @@ RSpec.describe 'send' do
         result = payload
       end
 
-      expect(client.result_queue).to be_a String
+      if rpc_mode
+        expect(client.result_queue).to be_a String
+      else
+        expect(client.result_queue).to eq nil
+      end
+
       expect(client.connection).to be_open
 
       started_at = Time.now
