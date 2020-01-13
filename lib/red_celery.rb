@@ -66,6 +66,10 @@ module RedCelery
       @channels[Thread.current]
     end
 
+    def declare_queue(name, **attrs)
+      get_channel.queue(name, attrs)
+    end
+
     def get_exchange(queue)
       channel = get_channel
       @exchanges[channel][queue] ||= channel.direct(queue, durable: true)
