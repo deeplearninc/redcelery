@@ -7,7 +7,7 @@ RSpec.describe 'revoking' do
     client = build_red_celery_client
     started_at = Time.now
 
-    task_id = client.send_task('tasks.delay_task', queue: 'my_queue', args: [10])
+    task_id = client.send_task('tasks.delay_task', queue: 'my_queue', args: [10], queue_opts: { durable: true })
     client.revoke_task(task_id)
 
     result = nil

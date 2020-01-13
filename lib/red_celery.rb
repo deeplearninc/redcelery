@@ -76,11 +76,15 @@ module RedCelery
     end
 
     # block - optional callback with result of task
-    def send_task(task_name, queue: nil, args: [], kwargs: {}, task_id: nil, &block)
+    def send_task(task_name, queue: nil, queue_opts: {}, args: [], kwargs: {}, task_id: nil, &block)
       task_id ||= SecureRandom.uuid
       queue ||= RedCelery.config.default_queue
 
-      exchange = get_exchange(queue)
+      if queue == 'celery'
+        queue_opts = queue_opts.merge(durable: true)
+      end
+
+      channel = get_channel
 
       body = {
         task: task_name,
@@ -98,7 +102,7 @@ module RedCelery
       end
 
       @lock.synchronize do
-        exchange.publish(
+        channel.queue(queue, **queue_opts).publish(
           body.to_json,
           {
             # content_encoding: 'binary',

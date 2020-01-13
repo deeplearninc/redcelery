@@ -6,7 +6,7 @@ RSpec.describe 'get failed task result' do
 
     subject do
       started_at = Time.now
-      task_id = client.send_task('tasks.test_fail', queue: queue, args: [99])
+      task_id = client.send_task('tasks.test_fail', queue: queue, args: [99], queue_opts: { durable: true })
 
       result = nil
       while result == nil && Time.now - started_at < timeout_sec do
@@ -43,7 +43,7 @@ RSpec.describe 'get failed task result' do
       end
 
       started_at = Time.now
-      task_id = client.send_task('tasks.test_fail', queue: queue, args: [99])
+      task_id = client.send_task('tasks.test_fail', queue: queue, args: [99], queue_opts: { durable: true })
 
       result = nil
       while result == nil && Time.now - started_at < timeout_sec do
