@@ -6,7 +6,7 @@ RSpec.describe 'send' do
 
     subject do
       started_at = Time.now
-      task_id = client.send_task('tasks.add_task', queue: queue, args: [11, 22])
+      task_id = client.send_task('tasks.add_task', queue: queue, args: [11, 22], queue_opts: { durable: true })
 
       expect(client.result_queue).to eq nil
       expect(client.connection).to be_open
@@ -53,7 +53,7 @@ RSpec.describe 'send' do
       expect(client.connection).to be_open
 
       started_at = Time.now
-      task_id = client.send_task('tasks.add_task', queue: queue, args: [11, 22])
+      task_id = client.send_task('tasks.add_task', queue: queue, args: [11, 22], queue_opts: { durable: true })
 
       result = nil
       while result == nil && Time.now - started_at < timeout_sec do
