@@ -29,8 +29,8 @@ module RedCelery
 
     attr_reader :connection, :result_queue
 
-    def initialize(broker_url: nil, rpc_mode: nil, &task_done_callback)
-      @connection = Bunny.new(broker_url || RedCelery.config.amqp)
+    def initialize(broker_url: nil, rpc_mode: nil, **options, &task_done_callback)
+      @connection = Bunny.new(broker_url || RedCelery.config.amqp, **options)
       @connection.start
       # http://rubybunny.info/articles/concurrency.html#sharing_channels_between_threads
       @channels = Concurrent::Hash.new
