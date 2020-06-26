@@ -19,12 +19,13 @@ RSpec.describe 'wait untill RabbitMQ and Celery start' do
     started_at = Time.now
     result = nil
     task_ids = []
+    result_queue = 'result'
 
     while result == nil && Time.now - started_at < timeout_sec do
-      task_ids << client.send_task('tasks.add_task', args: [33, 44])
+      task_ids << client.send_task('tasks.add_task', args: [33, 44], reply_to: result_queue)
 
       task_ids.each do |task_id|
-        if (result ||= client.get_task_result(task_id))
+        if (result ||= client.get_task_result(task_id, result_queue))
           break
         end
       end
